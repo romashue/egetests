@@ -4,7 +4,6 @@ import re
 import time
 import urllib.request
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 import requests
 import shutil
@@ -14,6 +13,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+
 import pygame
 import textwrap
 
@@ -122,6 +122,7 @@ for topic_i in range(12):  # от 0 до 11 включительно
     time.sleep(2)  # Ждем некоторое время для загрузки контента (можно настроить под вашу ситуацию)
     html_content = driver.page_source
     soup = BeautifulSoup(html_content, "lxml")
+    
     # Поиск всех меток с интересующими нас классами
     label_tags = soup.find_all('label', class_=['Link_wrap', 'ConstructorForm-TopicName', 'Label'])
     
@@ -145,14 +146,10 @@ for url in random_task_urls:
     driver.get(url)
     time.sleep(2)  # Ждем некоторое время для загрузки контента (можно настроить под вашу ситуацию)
     
-    # Ожидание до тех пор, пока не загрузятся необходимые элементы задачи
-    try:
-        task_elements = WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, 'task_problem_text'))
-        )
-    except TimeoutException:
-        print(f"Не удалось загрузить элементы задачи по URL: {url}")
-        continue  # Переход к следующей задаче
+    # Выбираем только условие задачи (блоки с классом 'task_problem_text')
+    task_elements = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, 'task_problem_text'))
+    )
 
     # Извлекаем текст условия задачи
     task_content = ''
@@ -195,13 +192,9 @@ for url in random_task_urls:
             answer_text = ""
 
     # Извлекаем текст решения и добавляем изображения
-    try:
-        solution_elements = WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, 'task_solution_text'))
-        )
-    except TimeoutException:
-        print(f"Не удалось загрузить элементы решения по URL: {url}")
-        continue  # Переход к следующей задаче
+    solution_elements = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, 'task_solution_text'))
+    )
 
     solution_content = ''
     for element in solution_elements:
@@ -213,8 +206,7 @@ for url in random_task_urls:
         solution_parts = solution_content.split("Решение")
         # Берем вторую часть (решение)
         solution_content = solution_parts[1].strip()
-
-    # Добавление задачи, решения и ответа в списки
+        # Добавление задачи, решения и ответа в списки
     questions.append(task_content.strip())
     solutions.append(solution_content.strip())
     answers.append(answer_text.strip())
@@ -300,7 +292,6 @@ if len(questions) > 0:  # Проверяем, есть ли задачи
             if show_solution:
                 solution_text = font_answer.render(f"Решение: {solutions[current_question - 1]}", True, BLACK)
                 screen.blit(solution_text, (WIDTH // 2 - solution_text.get_width() // 2, 350))
-        
         # Кнопка "Показать решение"
         button_solution = pygame.Rect(WIDTH // 2 - 100, 450, 200, 50)
         pygame.draw.rect(screen, GRAY, button_solution, 2)
